@@ -189,6 +189,7 @@ class netease {
                 value: nuidValue,
                 expirationDate: expire,
                 sameSite: 'no_restriction',
+                secure: true, // 【修复】：适配新版 Electron 的跨域要求
               },
               {
                 url: domain,
@@ -196,6 +197,7 @@ class netease {
                 value: nnidValue,
                 expirationDate: expire,
                 sameSite: 'no_restriction',
+                secure: true, // 【修复】：适配新版 Electron 的跨域要求
               },
               {
                 url: domain,
@@ -203,6 +205,7 @@ class netease {
                 value: nmtidValue,
                 expirationDate: expire,
                 sameSite: 'no_restriction',
+                secure: true, // 【修复】：适配新版 Electron 的跨域要求
               },
             ],
             cookieSet,
@@ -210,6 +213,10 @@ class netease {
               callback(null);
             }
           );
+        } else {
+          // 【核心修复】：补回丢失的 else 分支！
+          // 防止已有 Cookie 时代码卡死，保证后续请求正常发出！
+          callback(null);
         }
       }
     );
@@ -794,7 +801,7 @@ class netease {
         value: 'pc',
         expirationDate: expire,
       },
-      (cookie) => {}
+      (cookie) => { }
     );
     return {
       success: (fn) => {
@@ -956,7 +963,7 @@ class netease {
         url: 'https://music.163.com',
         name: 'MUSIC_U',
       },
-      (cookie) => {}
+      (cookie) => { }
     );
   }
 }
