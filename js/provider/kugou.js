@@ -1,6 +1,29 @@
 /* eslint-disable no-unused-vars */
 /* global async getParameterByName */
 class kugou {
+  static kg_format_image_url(url) {
+    if (!url) {
+      return '';
+    }
+    return url.replace('{size}', '400');
+  }
+
+  static kg_decode_base64_utf8(content) {
+    if (!content) {
+      return '';
+    }
+
+    const binary = window.atob(content);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+
+    return new window.TextDecoder('utf-8')
+      .decode(bytes)
+      .replace(/^\uFEFF/, '');
+  }
+
   static kg_convert_song(song) {
     const track = {
       id: `kgtrack_${song.FileHash}`,
@@ -11,7 +34,9 @@ class kugou {
       album_id: `kgalbum_${song.AlbumID}`,
       source: 'kugou',
       source_url: `https://www.kugou.com/song/#hash=${song.FileHash}&album_id=${song.AlbumID}`,
-      img_url: '',
+      img_url: kugou.kg_format_image_url(
+        song.Image || (song.trans_param && song.trans_param.union_cover)
+      ),
       // url: `kgtrack_${song.FileHash}`,
       lyric_url: song.FileHash,
     };
@@ -47,15 +72,26 @@ class kugou {
 
   static kg_render_search_result_item(index, item, params, callback) {
     const track = kugou.kg_convert_song(item);
-    // Add singer img
-    const url = `${'https://www.kugou.com/yy/index.php?r=play/getdata&hash='}${
+    if (track.img_url) {
+      callback(null, track);
+      return;
+    }
+
+    const target_url = `${'https://m.kugou.com/app/i/getSongInfo.php?cmd=playInfo&hash='}${
       track.lyric_url
     }`;
-    axios.get(url).then((response) => {
-      const { data } = response;
-      track.img_url = data.data.img;
-      callback(null, track);
-    });
+    axios
+      .get(target_url)
+      .then((response) => {
+        const { data } = response;
+        track.img_url = kugou.kg_format_image_url(
+          data.album_img ||
+            data.imgUrl ||
+            (data.trans_param && data.trans_param.union_cover)
+        );
+        callback(null, track);
+      })
+      .catch(() => callback(null, track));
   }
 
   static search(url) {
@@ -329,20 +365,34 @@ class kugou {
 
   static lyric(url) {
     const track_id = getParameterByName('track_id', url).split('_').pop();
-    const album_id = getParameterByName('album_id', url).split('_').pop();
-    let lyric_url = `https://wwwapi.kugou.com/yy/index.php?r=play/getdata&callback=jQuery&mid=1&hash=${track_id}&platid=4&album_id=${album_id}`;
-    const timstamp = +new Date();
-    lyric_url += `&_=${timstamp}`;
+    const search_url = `https://lyrics.kugou.com/search?ver=1&man=yes&client=pc&hash=${track_id}`;
     return {
       success: (fn) => {
-        axios.get(lyric_url).then((response) => {
-          const { data } = response;
-          const jsonString = data.slice('jQuery('.length, data.length - 1 - 1);
-          const info = JSON.parse(jsonString);
-          return fn({
-            lyric: info.data.lyrics,
-          });
-        });
+        axios
+          .get(search_url)
+          .then((response) => {
+            const candidates = response.data.candidates || [];
+            if (candidates.length === 0) {
+              fn({ lyric: '' });
+              return null;
+            }
+
+            const candidate = candidates[0];
+            const download_url = `${
+              'https://lyrics.kugou.com/download?ver=1&client=pc&fmt=lrc&charset=utf8'
+            }&id=${candidate.id}&accesskey=${candidate.accesskey}`;
+            return axios.get(download_url);
+          })
+          .then((response) => {
+            if (!response) {
+              return;
+            }
+
+            fn({
+              lyric: kugou.kg_decode_base64_utf8(response.data.content),
+            });
+          })
+          .catch(() => fn({ lyric: '' }));
       },
     };
   }
