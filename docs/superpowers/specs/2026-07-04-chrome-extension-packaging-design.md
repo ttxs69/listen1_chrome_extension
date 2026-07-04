@@ -78,6 +78,7 @@ const archiver = require('archiver');
 const REPO_ROOT = path.resolve(__dirname, '..');
 const DIST_DIR = path.join(REPO_ROOT, 'dist');
 
+// Hard excludes apply to BOTH targets. Per-target rules add/subtract below.
 const HARD_EXCLUDES = new Set([
   '.git', '.gitignore', '.github',
   '.eslintrc.json', '.eslintcache', '.prettierrc',
@@ -86,21 +87,22 @@ const HARD_EXCLUDES = new Set([
   'scripts',
   'README.md', 'README_EN.md', 'LICENSE',
   '.DS_Store', '.vscode',
-  'manifest_firefox.json', // handled per-target below
 ]);
 
 const PER_TARGET = {
   chrome: {
     manifest: 'manifest.json',
     outputName: b => `listen1-chrome-${b}.zip`,
-    extraExcludes: [],
+    // Chrome build ships only the MV3 manifest; drop the FF one.
+    extraExcludes: ['manifest_firefox.json'],
     renames: {},
   },
   firefox: {
     manifest: 'manifest_firefox.json',
     outputName: b => `listen1-firefox-${b}.zip`,
-    // On Firefox we don't ship the chrome manifest as `manifest.json`
-    // because we put the firefox one there via renaming.
+    // Firefox loads `manifest.json` by that exact name. Drop the chrome
+    // manifest under that name (it would shadow the rename) and rename
+    // the firefox one into place.
     extraExcludes: ['manifest.json'],
     renames: { 'manifest_firefox.json': 'manifest.json' },
   },
