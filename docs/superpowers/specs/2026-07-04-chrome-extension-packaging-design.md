@@ -35,6 +35,7 @@ A single Node script (`scripts/pack.js`) is invoked once per target. It:
 ## Files Added / Modified
 
 ### Modified
+
 - `package.json`:
   - Add `archiver ^7.0.1` to `devDependencies`.
   - Add three scripts:
@@ -43,15 +44,18 @@ A single Node script (`scripts/pack.js`) is invoked once per target. It:
     - `"pack": "npm run pack:chrome && npm run pack:firefox"`
 
 ### Added
+
 - `scripts/pack.js` — the packager (single file, ~80 lines).
 - `docs/superpowers/specs/2026-07-04-chrome-extension-packaging-design.md` — this file.
 
 ### Excluded via `.gitignore` (already covered by existing rule)
+
 - `dist/` is already in `.gitignore`. Output zips will not be committed.
 
 ## Exclude Rules
 
 ### Hard excludes (both targets)
+
 - `.git/`, `.gitignore`, `.github/`
 - `.eslintrc.json`, `.eslintcache`, `.prettierrc`
 - `node_modules/`
@@ -62,10 +66,13 @@ A single Node script (`scripts/pack.js`) is invoked once per target. It:
 - `README.md`, `README_EN.md`
 - `LICENSE`
 - `.DS_Store`, `.vscode/`
+- `.pi-subagents/`, `.superpowers/` — harness / tooling scratch dirs that may live in the working tree but never ship with the extension payload.
+- `docs/` — internal design and implementation-plan markdown authored alongside the source. Not part of the extension payload.
 
 ### Per-target excludes
+
 - **Chrome build:** `manifest_firefox.json`
-- **Firefox build:** none excluded by name — instead, `manifest_firefox.json` is *renamed* to `manifest.json` inside the archive via `archiver`'s `entryName` option. `manifest.json` is then excluded (it would conflict with the renamed entry).
+- **Firefox build:** none excluded by name — instead, `manifest_firefox.json` is _renamed_ to `manifest.json` inside the archive via `archiver`'s `entryName` option. `manifest.json` is then excluded (it would conflict with the renamed entry).
 
 ## Implementation Outline (pack.js)
 
@@ -80,26 +87,36 @@ const DIST_DIR = path.join(REPO_ROOT, 'dist');
 
 // Hard excludes apply to BOTH targets. Per-target rules add/subtract below.
 const HARD_EXCLUDES = new Set([
-  '.git', '.gitignore', '.github',
-  '.eslintrc.json', '.eslintcache', '.prettierrc',
-  'node_modules', 'dist', '_metadata',
-  'package.json', 'package-lock.json',
+  '.git',
+  '.gitignore',
+  '.github',
+  '.eslintrc.json',
+  '.eslintcache',
+  '.prettierrc',
+  'node_modules',
+  'dist',
+  '_metadata',
+  'package.json',
+  'package-lock.json',
   'scripts',
-  'README.md', 'README_EN.md', 'LICENSE',
-  '.DS_Store', '.vscode',
+  'README.md',
+  'README_EN.md',
+  'LICENSE',
+  '.DS_Store',
+  '.vscode',
 ]);
 
 const PER_TARGET = {
   chrome: {
     manifest: 'manifest.json',
-    outputName: b => `listen1-chrome-${b}.zip`,
+    outputName: (b) => `listen1-chrome-${b}.zip`,
     // Chrome build ships only the MV3 manifest; drop the FF one.
     extraExcludes: ['manifest_firefox.json'],
     renames: {},
   },
   firefox: {
     manifest: 'manifest_firefox.json',
-    outputName: b => `listen1-firefox-${b}.zip`,
+    outputName: (b) => `listen1-firefox-${b}.zip`,
     // Firefox loads `manifest.json` by that exact name. Drop the chrome
     // manifest under that name (it would shadow the rename) and rename
     // the firefox one into place.
@@ -119,6 +136,7 @@ Packed dist/listen1-chrome-2.33.0.zip (87 files, 1.42 MB in 412 ms)
 ```
 
 Exit codes:
+
 - `0` success
 - `1` invalid `--target`
 - `2` manifest missing / no version
@@ -135,12 +153,14 @@ Exit codes:
 ## Install Steps (Documented, Not in Script)
 
 ### Chrome
+
 1. `npm install`
 2. `npm run pack:chrome`
 3. Unzip: `unzip dist/listen1-chrome-<v>.zip -d listen1-chrome`
 4. Visit `chrome://extensions` → enable Developer mode → **Load unpacked** → select the unzipped folder.
 
 ### Firefox
+
 1. `npm install`
 2. `npm run pack:firefox`
 3. Unzip: `unzip dist/listen1-firefox-<v>.zip -d listen1-firefox`
