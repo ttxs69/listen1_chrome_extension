@@ -4,7 +4,10 @@
   "description": "one for all free music in china",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "pack:chrome": "node scripts/pack.js --target=chrome",
+    "pack:firefox": "node scripts/pack.js --target=firefox",
+    "pack": "npm run pack:chrome && npm run pack:firefox"
   },
   "repository": {
     "type": "git",
@@ -17,6 +20,7 @@
   },
   "homepage": "https://github.com/listen1/listen1_chrome_extension#readme",
   "devDependencies": {
+    "archiver": "^7.0.1",
     "eslint": "^7.30.0",
     "eslint-config-airbnb-base": "^14.2.1",
     "eslint-config-prettier": "^8.3.0",

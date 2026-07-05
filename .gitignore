@@ -6,3 +6,7 @@
 node_modules
 dist
 _metadata
+
+# Harness / tooling scratch dirs
+.pi-subagents
+.superpowers
